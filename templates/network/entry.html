@@ -1,0 +1,40 @@
+{% extends "network/layout.html" %}
+
+{% block title %}
+    {{ heading }}
+{% endblock %}
+
+{% block body %}
+    {{ message }}
+
+    <br>
+    {{ entry|safe }}
+    {% if type == 'people' %}
+        <br>
+        <img style="width:60%;margin-top: 40px; margin-left: 10px; border:3px solid black;" src="{{ url }}">
+    {% endif %}
+    <br><br>
+    {% if type == 'companies' %}
+        <h3>People who work here:</h3>
+        <br>
+        <ul>
+        {% for entry in entries %}
+            <li><a href="{% url 'network:entry' 'people' entry.rollNo %}">{{ entry.first_name }} {{ entry.last_name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% elif type == 'cities' %}
+        <h3>In {{ heading }}:</h3><br>
+        <h4>Companies</h4>
+        <ul>
+        {% for company in companies %}
+            <li><a href="{% url 'network:entry' 'companies' company.name %}">{{ company.name }}</a></li>
+        {% endfor %}
+        <br><br>
+        <h4>People</h4>
+        {% for person in people %}
+            <li><a href="{% url 'network:entry' 'people' person.rollNo %}">{{ person.first_name }} {{ person.last_name }}</a></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+{% endblock %}
