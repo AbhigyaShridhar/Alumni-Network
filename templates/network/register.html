@@ -1,0 +1,22 @@
+{% extends "network/layout.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Register
+{% endblock %}
+
+{% block body %}
+    {{ message }}
+    <h1>{{ type }}</h1>
+
+    <ul>
+        <form action="{% url 'network:register' %}" method="post">
+          {{ form|crispy }}
+          {% csrf_token %}
+          <br>
+          <input type="submit" value="Sign Up">
+        </form>
+        <br>
+    </ul>
+
+{% endblock %}
