@@ -7,6 +7,7 @@ This is a django based website to store and maintain basic information about col
     mkvirtualenv env --python=/usr/bin/python3.8
   ```
   Refer [this](https://virtualenvwrapper.readthedocs.io/en/latest/) if not familiar with python virtual environments
+  
   2. Install django's latest version:
   ```shell
     pip install django
