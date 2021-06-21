@@ -1,0 +1,21 @@
+{% extends "network/layout.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    Login
+{% endblock %}
+
+{% block body %}
+    {{ message }}
+
+    <ul>
+        <form action="{% url 'network:login_view' %}" method="post">
+          {% csrf_token %}
+          {{ form|crispy }}
+          <br>
+          <input type="submit" value="Log In">
+        </form>
+        <br>
+    </ul>
+
+{% endblock %}
