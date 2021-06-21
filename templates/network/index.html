@@ -1,0 +1,31 @@
+{% extends "network/layout.html" %}
+
+{% block title %}
+    Alumni Network
+{% endblock %}
+
+{% block body %}
+    {{ message }}
+    <h1>{{ type }}</h1>
+
+    {% if type == 'companies' %}
+    <ul>
+        {% for entry in entries %}
+            <li><a href="{% url 'network:entry' 'companies' entry  %}">{{ entry }}</a></li>
+        {% endfor %}
+    </ul>
+    {% elif type == 'people' %}
+    <ul>
+        {% for entry in entries %}
+            <li><a href="{% url 'network:entry' 'people' entry.rollNo %}">{{ entry.first_name }} {{ entry.last_name }}</a></li>
+        {% endfor %}
+    </ul>
+    {% elif type == 'cities' %}
+    <ul>
+        {% for entry in entries %}
+            <li><a href="{% url 'network:entry' 'cities' entry.name %}">{{ entry.name }}</a></li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+
+{% endblock %}
