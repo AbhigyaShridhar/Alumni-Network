@@ -1,7 +1,6 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
 import markdown2
-import re
 from django.urls import reverse, reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import View
@@ -17,8 +16,13 @@ from django.contrib.auth import authenticate
 from django.contrib.auth import login, logout
 
 from . import util
-from .models import Person, City, Company
-from .forms import AlumniForm, RegisterForm, SearchForm, StudentForm, CityForm, CompanyForm, LoginForm
+from .models import Person, City, Company, Job
+from .forms import AlumniForm, RegisterForm, SearchForm, StudentForm, CityForm, CompanyForm, LoginForm, JobForm
+from django.views.generic import DetailView
+
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 @login_required
 def index(request):
@@ -103,8 +107,6 @@ class Register(View):
                 })
             try:
                 user = Person.objects.create_user(first_name, last_name, email, rollNo, p1)
-                user.set_password(p1)
-                user.is_active = False
                 user.save()
 
             except IntegrityError:
@@ -123,12 +125,16 @@ class Register(View):
                 'uid':urlsafe_base64_encode(force_bytes(user.pk)),
                 'token':account_activation_token.make_token(user),
             }
-            message = render_to_string('network/email.html', ctx)
-            mail = EmailMessage(
-                mail_subject, message, to=[to_email]
+            message = Mail(
+                to_emails = to_email,
+                subject = mail_subject,
+                html_content = render_to_string('network/email.html', ctx)
             )
-            mail.content_subtype = "html"
-            mail.send()
+            sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+            response = sg.send(message)
+            print(response.status_code)
+            print(response.body)
+            print(response.headers)
             return HttpResponse("A confirmation Email has been sent to your Institute email address. Please Confirm Your email to complete your registration")
 
 @login_required
@@ -398,38 +404,82 @@ def cities(request):
         "search_form": SearchForm()
     })
 
-#def search(request):
-#    form = SearchForm(request.GET)
-#    if form.is_valid():
-#        querry = form.cleaned_data["querry"]
-#    entries_c = util.list_entries('companies')
-#    entries_p = util.list_entries('people')
-#    results = []
-#    for entry in entries:
-#        if entry == querry:
-#            entry = util.get_entry(entry)
-#            md = markdown2.Markdown()
-#            entry = md.convert(entry)
-#            return render(request, "network/page.html", {
-#                "entry": entry
-#            })
-#        elif re.search(querry, entry):
-#            results.append(entry)
-#    if not results:
-#        return render(request, "network/index.html", {
-#            "entries": util.list_entries(),
-#            "message": "No results found for the querry!"
-#        })
-#    else:
-#        return render(request, "network/search.html", {
-#        "entries": results
-#        })
+@login_required
+def jobs(request):
+    return render(request, "network/index.html", {
+            "entries": Job.objects.all(),
+            "type": 'jobs',
+            "search_form": SearchForm()
+        })
 
+class AddJob(LoginRequiredMixin, View):
+    template = 'network/form.html'
+    success_url = 'network:jobs'
 
+    def get(self, request):
+        if not request.user.is_current:
+            data = {'about': "Thank you for offering a referal/position \nkindly provide info like which batches are allowed and basic eligibility criterea, along with instructions to apply.\nPlease note that this can also be a contest/hackathon from your organisation"}
+            form = JobForm(initial=data)
+            return render(request, self.template, {
+                'form': form,
+                "search_form": SearchForm()
+            })
+        else:
+            return HttpResponse("you are not permitted to visit this URL, if it's a mistake, please contact site administrator")
 
+    def post(self, request):
+        form = JobForm(request.POST)
+        if form.is_valid():
+            at = form.cleaned_data['at']
+            place = form.cleaned_data['place']
+            intern = form.cleaned_data['intern']
+            about = form.cleaned_data['about']
+            valid_till = form.cleaned_data['valid_till']
 
+            if not at or not place or not intern or not about or not valid_till:
+                return render(request, self.template, {
+                'form': JobForm(),
+                'message': "Please enter all details",
+                "search_form": SearchForm()
+            })
+            else:
+                job = Job.objects.create(at=at, place=place, intern = intern, about=about, valid_till=valid_till, by=request.user)
+                job.save()
+                current_site = get_current_site(request)
+                mail_subject = 'Referal/Job notification'
+                for student in Person.objects.filter(rollNo='19102'):
+                    to_email = student.email
+                    ctx = {
+                        'user': student,
+                        'domain': current_site.domain,
+                        'job': job,
+                    }
+                    message = render_to_string('network/notification.html', ctx)
+                    mail = EmailMessage(
+                        mail_subject, message, to=[to_email]
+                    )
+                    mail.content_subtype = "html"
+                    mail.send()
+                return HttpResponse("An email notifcation has been sent to all the active students in the network. Thank you very much for your kind help....")
 
+        else:
+            return render(request, self.template, {
+                'form': JobForm(),
+                'message': "Please enter valid details",
+                "search_form": SearchForm()
+            })
 
+class job(LoginRequiredMixin, DetailView):
+    model = Job
+    template = 'network/job.html'
+
+    def get(self, request, pk):
+        job = Job.objects.get(id=pk)
+        return render(request, self.template, {
+            'type': "jobs",
+            "search_form": SearchForm(),
+            'job': job,
+        })
 
 
 
