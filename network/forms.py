@@ -1,5 +1,5 @@
 from django import forms
-from .models import Person, City, Company
+from .models import Person, City, Company, Job
 
 class SearchForm(forms.Form):
     querry = forms.CharField(label='Search', max_length=50)
@@ -46,3 +46,9 @@ class LoginForm(forms.ModelForm):
     class Meta:
         model = Person
         fields = ['rollNo']
+
+class JobForm(forms.ModelForm):
+
+    class Meta:
+        model = Job
+        fields = ['at', 'place', 'intern', 'about', 'valid_till']
