@@ -34,21 +34,22 @@ class UserManager(BaseUserManager):
         user.is_admin = True
         user.is_staff = True
         user.is_superuser = True
+        user.is_active = True
         user.set_password(password)
         user.save(using=self._db)
         return user
 
 class Company(models.Model):
     name = models.CharField(max_length=50, default="NAME")
-    people = models.ManyToManyField('Person', default=None, related_name='employes', null=True)
+    people = models.ManyToManyField('Person', related_name='employees', blank=False)
 
     def __str__(self):
         return self.name
 
 class City(models.Model):
     name = models.CharField(max_length=50, default="NAME")
-    companies = models.ManyToManyField(Company, default=None, related_name='located_at', null=True)
-    people = models.ManyToManyField('Person', default=None, related_name='residents', null=True)
+    companies = models.ManyToManyField(Company, related_name='located_at', blank=False)
+    people = models.ManyToManyField('Person', related_name='residents', blank=False)
 
     def __str__(self):
         return self.name
@@ -70,8 +71,8 @@ class Person(AbstractBaseUser):
     facebook_profile = models.URLField(null=True, blank=True)
     instagram_profile = models.URLField(null=True, blank=True)
     linkedin_profile = models.URLField(null=True, blank=True)
-    city = models.ForeignKey(City, on_delete=models.CASCADE, default=None, null=True, blank=False)
-    company = models.ForeignKey(Company, on_delete=models.CASCADE, default=None, null=True, blank=False)
+    city = models.ForeignKey(City, on_delete=models.CASCADE, null=True, blank=False)
+    company = models.ForeignKey(Company, on_delete=models.CASCADE, null=True, blank=False)
     first = 1
     second = 2
     third = 3
@@ -82,7 +83,7 @@ class Person(AbstractBaseUser):
         (third, 'third'),
         (fourth, 'fourth')
     )
-    year = models.IntegerField(choices=YEAR_CHOICES, null=True, blank=True)
+    year = models.IntegerField(choices=YEAR_CHOICES, null=True, blank=False)
     CSE = 'CSE'
     ECE = 'ECE'
     IT = 'IT'
@@ -91,8 +92,8 @@ class Person(AbstractBaseUser):
         (ECE, 'ECE'),
         (IT, 'IT')
     )
-    branch = models.CharField(max_length=3, choices=Branch_CHOICES, default="CSE", null=True, blank=True)
-    rollNo = models.CharField(validators=[MinLengthValidator(5)], max_length=5, blank=True)
+    branch = models.CharField(max_length=3, choices=Branch_CHOICES, default="CSE", null=True, blank=False)
+    rollNo = models.CharField(validators=[MinLengthValidator(5)], max_length=5, blank=False)
 
     image = models.URLField(blank=True, null=True)
     #content_type = models.CharField(max_length=256, null=True, help_text='The MIMEType of the file')
@@ -110,3 +111,16 @@ class Person(AbstractBaseUser):
 
     def has_module_perms(self, app_label):
         return True
+
+class Job(models.Model):
+    by = models.ForeignKey(Person, on_delete=models.CASCADE, null=False, blank=False)
+    place = models.ForeignKey(City, on_delete=models.CASCADE, null=False, blank=False)
+    at = models.ForeignKey(Company, on_delete=models.CASCADE, null=False, blank=False)
+    date_posted = models.DateTimeField(verbose_name='date_joined', auto_now_add=True, null=False, blank=False)
+    valid_till = models.DateTimeField(verbose_name='last_login', null=False, blank=False)
+    intern = models.BooleanField(default=False, blank=False, null=False)
+    about = models.TextField()
+
+    def __str__(self):
+        return self.by.rollNo + ' ' + self.at.name
+
